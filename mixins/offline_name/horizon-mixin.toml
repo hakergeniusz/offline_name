@@ -1,0 +1,51 @@
+[mod]
+id = "offline_name"
+version = "0.1.0"
+priority = 100
+
+# The commit it was tested on: it splices the game's title-action join path
+# and the every-tick hook, so a Horizon change in game.rs or the native-hook
+# sources needs a re-check.
+[compatibility]
+horizon_revision = "2ebf00a0281c592f79191e76fce0e7d522c6f425"
+
+# The rules' library: setting parsing, the capture-once default, the join
+# decision and the login line, with standalone tests.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "offline_name"
+source = "runtime.rs"
+
+# Shared state between the join hook and the tick hook, with its tests. Pub:
+# the tick helper runs in the game's native-hook module, a different file at
+# this Horizon revision.
+[[module]]
+id = "gate"
+file = "crates/horizon-client/src/game.rs"
+name = "offline_name_gate"
+source = "gate.rs"
+visibility = "pub"
+
+# The title screen dispatched a join: substitute the option the arm below is
+# about to re-read, and remember the address for the automatic login.
+[[injection]]
+id = "join"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::title_action"
+helper = "join.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "action", ty = "&crate::title::Action", value = "&action" },
+]
+
+# Every tick, on the window's game: send the stored login once the player is
+# in the world and the delay is up.
+[[injection]]
+id = "login"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "login.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
