@@ -1,0 +1,39 @@
+id = "offline_name"
+name = "Offline Name"
+version = "0.2.0"
+description = "Join servers with a per-server offline name, and log in automatically: per-address name rules and stored /login lines, kept in config/offline_name/. AuthMe-inspired."
+authors = ["hakergeniusz"]
+license = "MIT"
+api = "0.2"
+side = "client"
+capabilities = ["registries"]
+
+[native]
+game = "26.3"
+horizon = "f037744a79f9982c47876f49c5a3067279f88706"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
+
+# A join is starting: the title screen dispatched an Action::Connect. The
+# game is about to connect with options.player_name(), re-read inside the
+# arm below — so substituting the option here, before the body runs, is the
+# whole name override.
+[[native.mixin]]
+id = "join"
+target = "horizon_client::game::world_session::Game<'_>::title_action"
+kind = "HEAD"
+helper = "src/mixins/join.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "action", ty = "&crate::title::Action", value = "&action" },
+]
+
+# Every client tick, on the window's game: send the stored login once the
+# player is in the world and the delay is up.
+[[native.mixin]]
+id = "login"
+target = "horizon_client::game::native_hooks::client_tick_pre::Game<'_>::native_client_tick_pre"
+kind = "HEAD"
+helper = "src/mixins/login.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
